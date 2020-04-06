@@ -1,3 +1,4 @@
+# Created by Oleg Klimov. Licensed on the same terms as the rest of OpenAI Gym.
 import sys, math
 import numpy as np
 
@@ -12,34 +13,7 @@ from gym.utils import colorize, seeding, EzPickle
 import pyglet
 from pyglet import gl
 
-# Easiest continuous control task to learn from pixels, a top-down racing environment.
-# Discrete control is reasonable in this environment as well, on/off discretization is
-# fine.
-#
-# State consists of STATE_W x STATE_H pixels.
-#
-# Reward is -0.1 every frame and +1000/N for every track tile visited, where N is
-# the total number of tiles visited in the track. For example, if you have finished in 732 frames,
-# your reward is 1000 - 0.1*732 = 926.8 points.
-#
-# Game is solved when agent consistently gets 900+ points. Track generated is random every episode.
-#
-# Episode finishes when all tiles are visited. Car also can go outside of PLAYFIELD, that
-# is far off the track, then it will get -100 and die.
-#
-# Some indicators shown at the bottom of the window and the state RGB buffer. From
-# left to right: true speed, four ABS sensors, steering wheel position and gyroscope.
-#
-# To play yourself (it's rather fast for humans), type:
-#
-# python gym/envs/box2d/car_racing.py
-#
-# Remember it's powerful rear-wheel drive car, don't press accelerator and turn at the
-# same time.
-#
-# Created by Oleg Klimov. Licensed on the same terms as the rest of OpenAI Gym.
-
-STATE_W = 96   # less than Atari 160x192
+STATE_W = 96
 STATE_H = 96
 VIDEO_W = 600
 VIDEO_H = 400
@@ -49,17 +23,15 @@ WINDOW_H = 800
 SCALE       = 6.0        # Track scale
 TRACK_RAD   = 900/SCALE  # Track is heavily morphed circle with this radius
 PLAYFIELD   = 2000/SCALE # Game over boundary
-FPS         = 50         # Frames per second
-ZOOM        = 2.7        # Camera zoom
+FPS         = 60         # Frames per second
+ZOOM        = 1.5        # Camera zoom
 ZOOM_FOLLOW = True       # Set to False for fixed view (don't use zoom)
-
 
 TRACK_DETAIL_STEP = 21/SCALE
 TRACK_TURN_RATE = 0.31
 TRACK_WIDTH = 40/SCALE
 BORDER = 8/SCALE
 BORDER_MIN_COUNT = 4
-
 ROAD_COLOR = [0.4, 0.4, 0.4]
 
 class FrictionDetector(contactListener):
@@ -84,9 +56,8 @@ class FrictionDetector(contactListener):
         if not tile:
             return
 
-        tile.color[0] = ROAD_COLOR[0]
-        tile.color[1] = ROAD_COLOR[1]
-        tile.color[2] = ROAD_COLOR[2]
+        tile.color = ROAD_COLOR
+
         if not obj or "tiles" not in obj.__dict__:
             return
         if begin:
@@ -275,8 +246,9 @@ class CarRacing(gym.Env, EzPickle):
             self.fd_tile.shape.vertices = vertices
             t = self.world.CreateStaticBody(fixtures=self.fd_tile)
             t.userData = t
-            c = 0.01*(i%3)
-            t.color = [ROAD_COLOR[0] + c, ROAD_COLOR[1] + c, ROAD_COLOR[2] + c]
+            #c = 0.01*(i%3)
+            #t.color = [ROAD_COLOR[0] + c, ROAD_COLOR[1] + c, ROAD_COLOR[2] + c]
+            t.color = ROAD_COLOR
             t.road_visited = False
             t.road_friction = 1.0
             t.fixtures[0].sensor = True
@@ -320,7 +292,16 @@ class CarRacing(gym.Env, EzPickle):
         self.world.Step(1.0/FPS, 6*30, 2*30)
         self.t += 1.0/FPS
 
-        self.state = self.render("state_pixels")
+        self.render("state_pixels")
+
+        # --------------------------------------------------
+        x, y = self.car.hull.position
+        theta = (self.car.hull.angle + np.pi/2) % (2*np.pi)
+        vx, vy = self.car.hull.linearVelocity
+        omega = self.car.hull.angularVelocity
+        
+        self.state = (x, y, theta, vx, vy, omega)
+        # --------------------------------------------------
 
         step_reward = 0
         done = False
@@ -331,8 +312,8 @@ class CarRacing(gym.Env, EzPickle):
             self.car.fuel_spent = 0.0
             step_reward = self.reward - self.prev_reward
             self.prev_reward = self.reward
-            if self.tile_visited_count==len(self.track):
-                done = True
+            #if self.tile_visited_count==len(self.track):
+            #    done = True
             x, y = self.car.hull.position
             if abs(x) > PLAYFIELD or abs(y) > PLAYFIELD:
                 done = True
