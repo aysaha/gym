@@ -14,6 +14,7 @@ SIZE = 0.02
 ENGINE_POWER            = 100000000*SIZE*SIZE
 WHEEL_MOMENT_OF_INERTIA = 4000*SIZE*SIZE
 FRICTION_LIMIT          = 1000000*SIZE*SIZE     # friction ~= mass ~= size^2 (calculated implicitly using density)
+GRASS_FRICTION          = 1.0
 WHEEL_R  = 27
 WHEEL_W  = 14
 WHEELPOS = [
@@ -42,6 +43,7 @@ HULL_POLY4 =[
     (-50,-120), (+50,-120),
     (+50,-90),  (-50,-90)
     ]
+CAR_COLOR   = (0.8,0.4,0.0)
 WHEEL_COLOR = (0.0,0.0,0.0)
 WHEEL_WHITE = (0.3,0.3,0.3)
 MUD_COLOR   = (0.4,0.4,0.0)
@@ -59,7 +61,7 @@ class Car:
                 fixtureDef(shape = polygonShape(vertices=[ (x*SIZE,y*SIZE) for x,y in HULL_POLY4 ]), density=1.0)
                 ]
             )
-        self.hull.color = (0.0,0.0,0.8)
+        self.hull.color = CAR_COLOR
         self.wheels = []
         self.fuel_spent = 0.0
         WHEEL_POLY = [
@@ -133,7 +135,8 @@ class Car:
 
             # Position => friction_limit
             grass = True
-            friction_limit = FRICTION_LIMIT*0.6  # Grass friction if no tile
+            friction_limit = FRICTION_LIMIT*GRASS_FRICTION  # Grass friction if no tile
+
             for tile in w.tiles:
                 friction_limit = max(friction_limit, FRICTION_LIMIT*tile.road_friction)
                 grass = False

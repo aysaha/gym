@@ -33,6 +33,7 @@ TRACK_WIDTH = 40/SCALE
 BORDER = 8/SCALE
 BORDER_MIN_COUNT = 4
 ROAD_COLOR = [0.4, 0.4, 0.4]
+ROAD_FRICTION = 1.0
 
 class FrictionDetector(contactListener):
     def __init__(self, env):
@@ -62,7 +63,7 @@ class FrictionDetector(contactListener):
             return
         if begin:
             obj.tiles.add(tile)
-            # print tile.road_friction, "ADD", len(obj.tiles)
+            #print tile.road_friction, "ADD", len(obj.tiles)
             if not tile.road_visited:
                 tile.road_visited = True
                 self.env.reward += 1000.0/len(self.env.track)
@@ -87,13 +88,11 @@ class CarRacing(gym.Env, EzPickle):
         self.invisible_video_window = None
         self.road = None
         self.car = None
+        self.state = np.zeros((6,))
         self.reward = 0.0
         self.prev_reward = 0.0
         self.verbose = verbose
-        self.fd_tile = fixtureDef(
-                shape = polygonShape(vertices=
-                    [(0, 0),(1, 0),(1, -1),(0, -1)]))
-
+        self.fd_tile = fixtureDef(shape=polygonShape(vertices=[(0, 0),(1, 0),(1, -1),(0, -1)]))
         self.action_space = spaces.Box( np.array([-1,0,0]), np.array([+1,+1,+1]), dtype=np.float32)  # steer, gas, brake
         self.observation_space = spaces.Box(low=0, high=255, shape=(STATE_H, STATE_W, 3), dtype=np.uint8)
 
@@ -250,7 +249,7 @@ class CarRacing(gym.Env, EzPickle):
             #t.color = [ROAD_COLOR[0] + c, ROAD_COLOR[1] + c, ROAD_COLOR[2] + c]
             t.color = ROAD_COLOR
             t.road_visited = False
-            t.road_friction = 1.0
+            t.road_friction = ROAD_FRICTION
             t.fixtures[0].sensor = True
             self.road_poly.append(( [road1_l, road1_r, road2_r, road2_l], t.color ))
             self.road.append(t)
@@ -280,7 +279,7 @@ class CarRacing(gym.Env, EzPickle):
                 print("retry to generate track (normal if there are not many of this messages)")
         self.car = Car(self.world, *self.track[0][1:4])
 
-        return self.step(None)[0]
+        return self.step(None)[0], self.track
 
     def step(self, action):
         if action is not None:
@@ -291,17 +290,13 @@ class CarRacing(gym.Env, EzPickle):
         self.car.step(1.0/FPS)
         self.world.Step(1.0/FPS, 6*30, 2*30)
         self.t += 1.0/FPS
-
         self.render("state_pixels")
 
-        # --------------------------------------------------
-        x, y = self.car.hull.position
-        theta = (self.car.hull.angle + np.pi/2) % (2*np.pi)
-        vx, vy = self.car.hull.linearVelocity
-        omega = self.car.hull.angularVelocity
-        
-        self.state = (x, y, theta, vx, vy, omega)
-        # --------------------------------------------------
+        # Update vehicle state
+        self.state[0:2] = self.car.hull.position
+        self.state[2] = (self.car.hull.angle + np.pi/2) % (2*np.pi)
+        self.state[3:5] = self.car.hull.linearVelocity
+        self.state[5] = self.car.hull.angularVelocity
 
         step_reward = 0
         done = False
@@ -438,16 +433,16 @@ class CarRacing(gym.Env, EzPickle):
             gl.glVertex3f((place+val)*s, 2*h, 0)
             gl.glVertex3f((place+0)*s, 2*h, 0)
         true_speed = np.sqrt(np.square(self.car.hull.linearVelocity[0]) + np.square(self.car.hull.linearVelocity[1]))
-        vertical_ind(5, 0.02*true_speed, (1,1,1))
-        vertical_ind(7, 0.01*self.car.wheels[0].omega, (0.0,0,1)) # ABS sensors
-        vertical_ind(8, 0.01*self.car.wheels[1].omega, (0.0,0,1))
-        vertical_ind(9, 0.01*self.car.wheels[2].omega, (0.2,0,1))
-        vertical_ind(10,0.01*self.car.wheels[3].omega, (0.2,0,1))
-        horiz_ind(20, -10.0*self.car.wheels[0].joint.angle, (0,1,0))
-        horiz_ind(30, -0.8*self.car.hull.angularVelocity, (1,0,0))
+        vertical_ind(4, 0.01*self.car.wheels[0].omega, (0,0.7,1))
+        vertical_ind(5, 0.01*self.car.wheels[1].omega, (0,0.7,1))
+        vertical_ind(7, 0.01*self.car.wheels[2].omega, (0,0.5,1))
+        vertical_ind(8, 0.01*self.car.wheels[3].omega, (0,0.5,1))
+        vertical_ind(10, 0.02*true_speed, (0,0,1))
+        horiz_ind(20, -10.0*self.car.wheels[0].joint.angle, (1,1,0))
+        horiz_ind(30, -0.5*self.car.hull.angularVelocity, (0.5,0,1))
         gl.glEnd()
-        self.score_label.text = "%04i" % self.reward
-        self.score_label.draw()
+        #self.score_label.text = "%04i" % self.reward
+        #self.score_label.draw()
 
 
 if __name__=="__main__":
