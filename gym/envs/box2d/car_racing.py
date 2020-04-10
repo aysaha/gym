@@ -73,28 +73,28 @@ class FrictionDetector(contactListener):
             # print tile.road_friction, "DEL", len(obj.tiles) -- should delete to zero when on grass (this works)
 
 class CarRacing(gym.Env, EzPickle):
-    metadata = {
-        'render.modes': ['human', 'rgb_array', 'state_pixels'],
-        'video.frames_per_second' : FPS
-    }
+    metadata = {'render.modes': ['human', 'rgb_array', 'state_pixels'], 'video.frames_per_second' : FPS}
 
-    def __init__(self, verbose=1):
+    def __init__(self, verbose=0):
         EzPickle.__init__(self)
         self.seed()
-        self.contactListener_keepref = FrictionDetector(self)
-        self.world = Box2D.b2World((0,0), contactListener=self.contactListener_keepref)
+        #self.contactListener_keepref = FrictionDetector(self)
+        #self.world = Box2D.b2World((0,0), contactListener=self.contactListener_keepref)
+        self.world = Box2D.b2World((0,0))
         self.viewer = None
         self.invisible_state_window = None
         self.invisible_video_window = None
+        self.labels = 6*[None]
         self.road = None
         self.car = None
         self.state = np.zeros((6,))
         self.reward = 0.0
         self.prev_reward = 0.0
         self.verbose = verbose
-        self.fd_tile = fixtureDef(shape=polygonShape(vertices=[(0, 0),(1, 0),(1, -1),(0, -1)]))
-        self.action_space = spaces.Box( np.array([-1,0,0]), np.array([+1,+1,+1]), dtype=np.float32)  # steer, gas, brake
-        self.observation_space = spaces.Box(low=0, high=255, shape=(STATE_H, STATE_W, 3), dtype=np.uint8)
+        self.fd_tile = fixtureDef(shape=polygonShape(vertices=[(0,0),(1,0),(1,-1),(0,-1)]))
+        self.action_space = spaces.Box(np.array([-1,0,0]), np.array([1,1,1]), dtype=np.float32)
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float32)
+        #self.observation_space = spaces.Box(low=0, high=255, shape=(STATE_H, STATE_W, 3), dtype=np.uint8)
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -125,10 +125,9 @@ class CarRacing(gym.Env, EzPickle):
                 rad = 1.5*TRACK_RAD
             checkpoints.append( (alpha, rad*math.cos(alpha), rad*math.sin(alpha)) )
 
-        # print "\n".join(str(h) for h in checkpoints)
-        # self.road_poly = [ (    # uncomment this to see checkpoints
-        #    [ (tx,ty) for a,tx,ty in checkpoints ],
-        #    (0.7,0.7,0.9) ) ]
+        #print "\n".join(str(h) for h in checkpoints)
+        #self.road_poly = [([(tx,ty) for a,tx,ty in checkpoints], (0.7,0.7,0.9))] # uncomment this to see checkpoints
+        
         self.road = []
 
         # Go from one checkpoint to another to create track
@@ -185,7 +184,7 @@ class CarRacing(gym.Env, EzPickle):
             no_freeze -= 1
             if no_freeze==0:
                  break
-        # print "\n".join([str(t) for t in enumerate(track)])
+        #print "\n".join([str(t) for t in enumerate(track)])
 
         # Find closed loop range i1..i2, first loop should be ignored, second is OK
         i1, i2 = -1, -1
@@ -245,7 +244,7 @@ class CarRacing(gym.Env, EzPickle):
             self.fd_tile.shape.vertices = vertices
             t = self.world.CreateStaticBody(fixtures=self.fd_tile)
             t.userData = t
-            #c = 0.01*(i%3)
+            c = 0.01*(i%3)
             #t.color = [ROAD_COLOR[0] + c, ROAD_COLOR[1] + c, ROAD_COLOR[2] + c]
             t.color = ROAD_COLOR
             t.road_visited = False
@@ -307,8 +306,8 @@ class CarRacing(gym.Env, EzPickle):
             self.car.fuel_spent = 0.0
             step_reward = self.reward - self.prev_reward
             self.prev_reward = self.reward
-            #if self.tile_visited_count==len(self.track):
-            #    done = True
+            if self.tile_visited_count==len(self.track):
+                done = True
             x, y = self.car.hull.position
             if abs(x) > PLAYFIELD or abs(y) > PLAYFIELD:
                 done = True
@@ -321,14 +320,43 @@ class CarRacing(gym.Env, EzPickle):
         if self.viewer is None:
             from gym.envs.classic_control import rendering
             self.viewer = rendering.Viewer(WINDOW_W, WINDOW_H)
-            self.score_label = pyglet.text.Label('0000', font_size=36,
-                x=20, y=WINDOW_H*2.5/40.00, anchor_x='left', anchor_y='center',
-                color=(255,255,255,255))
+
+            self.labels[0] = pyglet.text.Label('FL FR', font_size=12,
+                                               x=WINDOW_W/16*3, y=8,
+                                               anchor_x='center', anchor_y='center',
+                                               color=(255,255,255,255))
+
+            self.labels[1] = pyglet.text.Label('RL RR', font_size=12,
+                                               x=WINDOW_W/4, y=8,
+                                               anchor_x='center', anchor_y='center',
+                                               color=(255,255,255,255))
+
+            self.labels[2] = pyglet.text.Label('C', font_size=12,
+                                               x=WINDOW_W/64*21, y=8,
+                                               anchor_x='center', anchor_y='center',
+                                               color=(255,255,255,255))
+
+            self.labels[3] = pyglet.text.Label('Linear Velocity', font_size=15,
+                                               x=WINDOW_W/4, y=WINDOW_H/12,
+                                               anchor_x='center', anchor_y='center',
+                                               color=(255,255,255,255))
+
+            self.labels[4] = pyglet.text.Label('Wheel Angle', font_size=15,
+                                               x=WINDOW_W/2, y=WINDOW_H/12,
+                                               anchor_x='center', anchor_y='center',
+                                               color=(255,255,255,255))
+
+            self.labels[5] = pyglet.text.Label('Angular Velocity', font_size=15,
+                                               x=WINDOW_W/4*3, y=WINDOW_H/12,
+                                               anchor_x='center', anchor_y='center',
+                                               color=(255,255,255,255))
+
             self.transform = rendering.Transform()
 
         if "t" not in self.__dict__: return  # reset() not called yet
 
-        zoom = 0.1*SCALE*max(1-self.t, 0) + ZOOM*SCALE*min(self.t, 1)   # Animate zoom first second
+        #zoom = 0.1*SCALE*max(1-self.t, 0) + ZOOM*SCALE*min(self.t, 1)   # Animate zoom first second
+        zoom = np.clip((ZOOM*SCALE - 1)*self.t**5 + 1, 1, ZOOM*SCALE)
         zoom_state  = ZOOM*SCALE*STATE_W/WINDOW_W
         zoom_video  = ZOOM*SCALE*VIDEO_W/WINDOW_W
         scroll_x = self.car.hull.position[0]
@@ -407,45 +435,52 @@ class CarRacing(gym.Env, EzPickle):
                 gl.glVertex3f(k*x + 0, k*y + 0, 0)
                 gl.glVertex3f(k*x + 0, k*y + k, 0)
                 gl.glVertex3f(k*x + k, k*y + k, 0)
-        for poly, color in self.road_poly:
-            gl.glColor4f(color[0], color[1], color[2], 1)
+        for i, (poly, color) in enumerate(self.road_poly):
+            if i == 2:
+                gl.glColor4f(1, 1, 1, 1)
+            else:
+                gl.glColor4f(color[0], color[1], color[2], 1)
+                
             for p in poly:
                 gl.glVertex3f(p[0], p[1], 0)
         gl.glEnd()
 
     def render_indicators(self, W, H):
         gl.glBegin(gl.GL_QUADS)
-        s = W/40.0
-        h = H/40.0
-        gl.glColor4f(0,0,0,1)
+        gl.glColor4f(0, 0, 0, 0.2)
         gl.glVertex3f(W, 0, 0)
-        gl.glVertex3f(W, 5*h, 0)
-        gl.glVertex3f(0, 5*h, 0)
+        gl.glVertex3f(W, H/10, 0)
+        gl.glVertex3f(0, H/10, 0)
         gl.glVertex3f(0, 0, 0)
-        def vertical_ind(place, val, color):
-            gl.glColor4f(color[0], color[1], color[2], 1)
-            gl.glVertex3f((place+0)*s, h + h*val, 0)
-            gl.glVertex3f((place+1)*s, h + h*val, 0)
-            gl.glVertex3f((place+1)*s, h, 0)
-            gl.glVertex3f((place+0)*s, h, 0)
-        def horiz_ind(place, val, color):
-            gl.glColor4f(color[0], color[1], color[2], 1)
-            gl.glVertex3f((place+0)*s, 4*h , 0)
-            gl.glVertex3f((place+val)*s, 4*h, 0)
-            gl.glVertex3f((place+val)*s, 2*h, 0)
-            gl.glVertex3f((place+0)*s, 2*h, 0)
-        true_speed = np.sqrt(np.square(self.car.hull.linearVelocity[0]) + np.square(self.car.hull.linearVelocity[1]))
-        vertical_ind(4, 0.01*self.car.wheels[0].omega, (0,0.7,1))
-        vertical_ind(5, 0.01*self.car.wheels[1].omega, (0,0.7,1))
-        vertical_ind(7, 0.01*self.car.wheels[2].omega, (0,0.5,1))
-        vertical_ind(8, 0.01*self.car.wheels[3].omega, (0,0.5,1))
-        vertical_ind(10, 0.02*true_speed, (0,0,1))
-        horiz_ind(20, -10.0*self.car.wheels[0].joint.angle, (0,1,0))
-        horiz_ind(30, -0.5*self.car.hull.angularVelocity, (1,1,0))
-        gl.glEnd()
-        #self.score_label.text = "%04i" % self.reward
-        #self.score_label.draw()
 
+        w = W/100
+        h = H/100
+
+        def ver_ind(place, val, color):
+            gl.glColor4f(color[0], color[1], color[2], color[3])
+            gl.glVertex3f(place, h*val, 0)
+            gl.glVertex3f(place+3*w, h*val, 0)
+            gl.glVertex3f(place+3*w, 0, 0)
+            gl.glVertex3f(place, 0, 0)
+
+        def hor_ind(place, val, color):
+            gl.glColor4f(color[0], color[1], color[2], color[3])
+            gl.glVertex3f(place, 5*h, 0)
+            gl.glVertex3f(place+w*val, 5*h, 0)
+            gl.glVertex3f(place+w*val, h, 0)
+            gl.glVertex3f(place, h, 0)
+
+        true_speed = np.sqrt(np.square(self.car.hull.linearVelocity[0]) + np.square(self.car.hull.linearVelocity[1]))
+        ver_ind(W/32*5, 0.025*self.car.wheels[0].omega, (0,0.7,1,0.7))
+        ver_ind(W/32*5+3*w, 0.025*self.car.wheels[1].omega, (0,0.7,1,0.7))
+        ver_ind(W/32*7, 0.025*self.car.wheels[2].omega, (0,0.5,1,0.7))
+        ver_ind(W/32*7+3*w, 0.025*self.car.wheels[3].omega, (0,0.5,1,0.8))
+        ver_ind(W/32*10, 0.05*true_speed, (0,0,1,0.7))
+        hor_ind(W/2, -25*self.car.wheels[0].joint.angle, (0,1,0,0.7))
+        hor_ind(W/4*3, -1*self.car.hull.angularVelocity, (1,1,0,0.7))
+        gl.glEnd()
+        for label in self.labels:
+            label.draw()
 
 if __name__=="__main__":
     from pyglet.window import key
