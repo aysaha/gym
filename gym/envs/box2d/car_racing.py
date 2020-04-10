@@ -392,12 +392,14 @@ class CarRacing(gym.Env, EzPickle):
 
     def render_road(self):
         gl.glBegin(gl.GL_QUADS)
-        gl.glColor4f(0.4, 0.8, 0.4, 1.0)
+        #gl.glColor4f(0.4, 0.8, 0.4, 1.0)
+        gl.glColor4f(0.75, 0.75, 0.75, 1.0)
         gl.glVertex3f(-PLAYFIELD, +PLAYFIELD, 0)
         gl.glVertex3f(+PLAYFIELD, +PLAYFIELD, 0)
         gl.glVertex3f(+PLAYFIELD, -PLAYFIELD, 0)
         gl.glVertex3f(-PLAYFIELD, -PLAYFIELD, 0)
-        gl.glColor4f(0.4, 0.9, 0.4, 1.0)
+        #gl.glColor4f(0.4, 0.9, 0.4, 1.0)
+        gl.glColor4f(0.65, 0.65, 0.65, 1.0)
         k = PLAYFIELD/20.0
         for x in range(-20, 20, 2):
             for y in range(-20, 20, 2):
@@ -438,8 +440,8 @@ class CarRacing(gym.Env, EzPickle):
         vertical_ind(7, 0.01*self.car.wheels[2].omega, (0,0.5,1))
         vertical_ind(8, 0.01*self.car.wheels[3].omega, (0,0.5,1))
         vertical_ind(10, 0.02*true_speed, (0,0,1))
-        horiz_ind(20, -10.0*self.car.wheels[0].joint.angle, (1,1,0))
-        horiz_ind(30, -0.5*self.car.hull.angularVelocity, (0.5,0,1))
+        horiz_ind(20, -10.0*self.car.wheels[0].joint.angle, (0,1,0))
+        horiz_ind(30, -0.5*self.car.hull.angularVelocity, (1,1,0))
         gl.glEnd()
         #self.score_label.text = "%04i" % self.reward
         #self.score_label.draw()

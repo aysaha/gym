@@ -229,7 +229,7 @@ class Car:
         class Particle:
             pass
         p = Particle()
-        p.color = WHEEL_COLOR if not grass else MUD_COLOR
+        p.color = WHEEL_COLOR #if not grass else MUD_COLOR
         p.ttl = 1
         p.poly = [(point1[0],point1[1]), (point2[0],point2[1])]
         p.grass = grass
