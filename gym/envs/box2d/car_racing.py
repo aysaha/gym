@@ -1,4 +1,5 @@
 # Created by Oleg Klimov. Licensed on the same terms as the rest of OpenAI Gym.
+# Modified by Ayusman Saha.
 import sys, math
 import numpy as np
 
@@ -278,7 +279,7 @@ class CarRacing(gym.Env, EzPickle):
                 print("retry to generate track (normal if there are not many of this messages)")
         self.car = Car(self.world, *self.track[0][1:4])
 
-        return self.step(None)[0], self.track
+        return self.step(None), self.track
 
     def step(self, action):
         if action is not None:
@@ -313,7 +314,7 @@ class CarRacing(gym.Env, EzPickle):
                 done = True
                 step_reward = -100
 
-        return self.state, step_reward, done, {}
+        return self.state
 
     def render(self, mode='human'):
         assert mode in ['human', 'state_pixels', 'rgb_array']
@@ -341,7 +342,7 @@ class CarRacing(gym.Env, EzPickle):
                                                anchor_x='center', anchor_y='center',
                                                color=(255,255,255,255))
 
-            self.labels[4] = pyglet.text.Label('Wheel Angle', font_size=15,
+            self.labels[4] = pyglet.text.Label('Steering Angle', font_size=15,
                                                x=WINDOW_W/2, y=WINDOW_H/12,
                                                anchor_x='center', anchor_y='center',
                                                color=(255,255,255,255))
@@ -356,7 +357,7 @@ class CarRacing(gym.Env, EzPickle):
         if "t" not in self.__dict__: return  # reset() not called yet
 
         #zoom = 0.1*SCALE*max(1-self.t, 0) + ZOOM*SCALE*min(self.t, 1)   # Animate zoom first second
-        zoom = np.clip((ZOOM*SCALE - 1)*self.t**5 + 1, 1, ZOOM*SCALE)
+        zoom = np.clip((ZOOM*SCALE - 1)*np.power(self.t, 5) + 1, 1, ZOOM*SCALE)
         zoom_state  = ZOOM*SCALE*STATE_W/WINDOW_W
         zoom_video  = ZOOM*SCALE*VIDEO_W/WINDOW_W
         scroll_x = self.car.hull.position[0]

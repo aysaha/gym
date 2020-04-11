@@ -15,6 +15,7 @@ ENGINE_POWER            = 100000000*SIZE*SIZE
 WHEEL_MOMENT_OF_INERTIA = 4000*SIZE*SIZE
 FRICTION_LIMIT          = 1000000*SIZE*SIZE     # friction ~= mass ~= size^2 (calculated implicitly using density)
 GRASS_FRICTION          = 1.0
+SKID_SCALAR             = 7.0
 WHEEL_R  = 27
 WHEEL_W  = 14
 WHEELPOS = [
@@ -175,7 +176,7 @@ class Car:
             force = np.sqrt(np.square(f_force) + np.square(p_force))
 
             # Skid trace
-            if abs(force) > 2.0*friction_limit:
+            if abs(force) > SKID_SCALAR*friction_limit:
                 if w.skid_particle and w.skid_particle.grass==grass and len(w.skid_particle.poly) < 30:
                     w.skid_particle.poly.append( (w.position[0], w.position[1]) )
                 elif w.skid_start is None:
