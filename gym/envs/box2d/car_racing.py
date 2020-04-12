@@ -284,7 +284,7 @@ class CarRacing(gym.Env, EzPickle):
 
     def step(self, action):
         if action is not None:
-            self.action = action
+            self.action = np.array(action)
             self.car.steer(-action[0])
             self.car.gas(action[1])
             self.car.brake(action[2])
