@@ -85,9 +85,10 @@ class CarRacing(gym.Env, EzPickle):
         self.viewer = None
         self.invisible_state_window = None
         self.invisible_video_window = None
-        self.labels = 6*[None]
+        self.labels = []
         self.road = None
         self.car = None
+        self.action = np.zeros((3,))
         self.state = np.zeros((6,))
         self.reward = 0.0
         self.prev_reward = 0.0
@@ -279,10 +280,11 @@ class CarRacing(gym.Env, EzPickle):
                 print("retry to generate track (normal if there are not many of this messages)")
         self.car = Car(self.world, *self.track[0][1:4])
 
-        return self.step(None), self.track
+        return self.step(None)
 
     def step(self, action):
         if action is not None:
+            self.action = action
             self.car.steer(-action[0])
             self.car.gas(action[1])
             self.car.brake(action[2])
@@ -322,35 +324,56 @@ class CarRacing(gym.Env, EzPickle):
             from gym.envs.classic_control import rendering
             self.viewer = rendering.Viewer(WINDOW_W, WINDOW_H)
 
-            self.labels[0] = pyglet.text.Label('FL FR', font_size=12,
-                                               x=WINDOW_W/16*3, y=8,
-                                               anchor_x='center', anchor_y='center',
-                                               color=(255,255,255,255))
+            self.labels.append(pyglet.text.Label('Input', font_size=15,
+                                                 x=WINDOW_W/16*3, y=WINDOW_H/12,
+                                                 anchor_x='center', anchor_y='center',
+                                                 color=(255,255,255,255)))
 
-            self.labels[1] = pyglet.text.Label('RL RR', font_size=12,
-                                               x=WINDOW_W/4, y=8,
-                                               anchor_x='center', anchor_y='center',
-                                               color=(255,255,255,255))
+            self.labels.append(pyglet.text.Label('S', font_size=12,
+                                                 x=WINDOW_W/64*7, y=WINDOW_H/100*3,
+                                                 anchor_x='center', anchor_y='center',
+                                                 color=(255,255,255,255)))
 
-            self.labels[2] = pyglet.text.Label('C', font_size=12,
-                                               x=WINDOW_W/64*21, y=8,
-                                               anchor_x='center', anchor_y='center',
-                                               color=(255,255,255,255))
+            self.labels.append(pyglet.text.Label('T', font_size=12,
+                                                 x=WINDOW_W/64*14, y=WINDOW_H/100*3,
+                                                 anchor_x='center', anchor_y='center',
+                                                 color=(255,255,255,255)))
 
-            self.labels[3] = pyglet.text.Label('Linear Velocity', font_size=15,
-                                               x=WINDOW_W/4, y=WINDOW_H/12,
-                                               anchor_x='center', anchor_y='center',
-                                               color=(255,255,255,255))
+            self.labels.append(pyglet.text.Label('B', font_size=12,
+                                                 x=WINDOW_W/64*17, y=WINDOW_H/100*3,
+                                                 anchor_x='center', anchor_y='center',
+                                                 color=(255,255,255,255)))
 
-            self.labels[4] = pyglet.text.Label('Steering Angle', font_size=15,
-                                               x=WINDOW_W/2, y=WINDOW_H/12,
-                                               anchor_x='center', anchor_y='center',
-                                               color=(255,255,255,255))
+            self.labels.append(pyglet.text.Label('Linear Velocity', font_size=15,
+                                                 x=WINDOW_W/2, y=WINDOW_H/12,
+                                                 anchor_x='center', anchor_y='center',
+                                                 color=(255,255,255,255)))
 
-            self.labels[5] = pyglet.text.Label('Angular Velocity', font_size=15,
-                                               x=WINDOW_W/4*3, y=WINDOW_H/12,
-                                               anchor_x='center', anchor_y='center',
-                                               color=(255,255,255,255))
+            self.labels.append(pyglet.text.Label('FL FR', font_size=12,
+                                                 x=WINDOW_W/16*7, y=WINDOW_H/100*3,
+                                                 anchor_x='center', anchor_y='center',
+                                                 color=(255,255,255,255)))
+
+            self.labels.append(pyglet.text.Label('RL RR', font_size=12,
+                                                 x=WINDOW_W/2, y=WINDOW_H/100*3,
+                                                 anchor_x='center', anchor_y='center',
+                                                 color=(255,255,255,255)))
+
+            self.labels.append(pyglet.text.Label('C', font_size=12,
+                                                 x=WINDOW_W/64*37, y=WINDOW_H/100*3,
+                                                 anchor_x='center', anchor_y='center',
+                                                 color=(255,255,255,255)))
+
+
+            self.labels.append(pyglet.text.Label('Angular Velocity', font_size=15,
+                                                 x=WINDOW_W/16*13, y=WINDOW_H/12,
+                                                 anchor_x='center', anchor_y='center',
+                                                 color=(255,255,255,255)))
+
+            self.labels.append(pyglet.text.Label('C', font_size=12,
+                                                 x=WINDOW_W/16*13, y=WINDOW_H/100*3,
+                                                 anchor_x='center', anchor_y='center',
+                                                 color=(255,255,255,255)))
 
             self.transform = rendering.Transform()
 
@@ -459,10 +482,10 @@ class CarRacing(gym.Env, EzPickle):
 
         def ver_ind(place, val, color):
             gl.glColor4f(color[0], color[1], color[2], color[3])
-            gl.glVertex3f(place, h*val, 0)
-            gl.glVertex3f(place+3*w, h*val, 0)
-            gl.glVertex3f(place+3*w, 0, 0)
-            gl.glVertex3f(place, 0, 0)
+            gl.glVertex3f(place-1.5*w, h*val, 0)
+            gl.glVertex3f(place+1.5*w, h*val, 0)
+            gl.glVertex3f(place+1.5*w, 0, 0)
+            gl.glVertex3f(place-1.5*w, 0, 0)
 
         def hor_ind(place, val, color):
             gl.glColor4f(color[0], color[1], color[2], color[3])
@@ -472,13 +495,15 @@ class CarRacing(gym.Env, EzPickle):
             gl.glVertex3f(place, h, 0)
 
         true_speed = np.sqrt(np.square(self.car.hull.linearVelocity[0]) + np.square(self.car.hull.linearVelocity[1]))
-        ver_ind(W/32*5, 0.025*self.car.wheels[0].omega, (0,0.7,1,0.7))
-        ver_ind(W/32*5+3*w, 0.025*self.car.wheels[1].omega, (0,0.7,1,0.7))
-        ver_ind(W/32*7, 0.025*self.car.wheels[2].omega, (0,0.5,1,0.7))
-        ver_ind(W/32*7+3*w, 0.025*self.car.wheels[3].omega, (0,0.5,1,0.8))
-        ver_ind(W/32*10, 0.05*true_speed, (0,0,1,0.7))
-        hor_ind(W/2, -25*self.car.wheels[0].joint.angle, (0,1,0,0.7))
-        hor_ind(W/4*3, -1*self.car.hull.angularVelocity, (1,1,0,0.7))
+        hor_ind(W/64*7, 7*self.action[0], (1,1,0,0.7))
+        ver_ind(W/64*14, 6*self.action[1], (0,1,0,0.7))
+        ver_ind(W/64*17, 6*self.action[2], (1,0,0,0.7))
+        ver_ind(W/16*7-1.5*w, 0.025*self.car.wheels[0].omega, (0,0.7,1,0.7))
+        ver_ind(W/16*7+1.5*w, 0.025*self.car.wheels[1].omega, (0,0.7,1,0.7))
+        ver_ind(W/2-1.5*w, 0.025*self.car.wheels[2].omega, (0,0.5,1,0.7))
+        ver_ind(W/2+1.5*w, 0.025*self.car.wheels[3].omega, (0,0.5,1,0.8))
+        ver_ind(W/64*37, 0.05*true_speed, (0,0,1,0.7))
+        hor_ind(W/16*13, -1*self.car.hull.angularVelocity, (0.5,0,1,0.7))
         gl.glEnd()
         for label in self.labels:
             label.draw()
