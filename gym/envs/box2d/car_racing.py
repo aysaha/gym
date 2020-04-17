@@ -24,7 +24,7 @@ WINDOW_H = 800
 SCALE       = 6.0        # Track scale
 TRACK_RAD   = 900/SCALE  # Track is heavily morphed circle with this radius
 PLAYFIELD   = 2000/SCALE # Game over boundary
-FPS         = 60         # Frames per second
+FPS         = 50         # Frames per second
 ZOOM        = 1.5        # Camera zoom
 ZOOM_FOLLOW = True       # Set to False for fixed view (don't use zoom)
 
@@ -88,6 +88,7 @@ class CarRacing(gym.Env, EzPickle):
         self.labels = []
         self.road = None
         self.car = None
+        self.dt = 1.0/FPS
         self.action = np.zeros((3,))
         self.state = np.zeros((6,))
         self.reward = 0.0
@@ -289,9 +290,9 @@ class CarRacing(gym.Env, EzPickle):
             self.car.gas(action[1])
             self.car.brake(action[2])
 
-        self.car.step(1.0/FPS)
-        self.world.Step(1.0/FPS, 6*30, 2*30)
-        self.t += 1.0/FPS
+        self.car.step(self.dt)
+        self.world.Step(self.dt, 6*30, 2*30)
+        self.t += self.dt
         self.render("state_pixels")
 
         # Update vehicle state
