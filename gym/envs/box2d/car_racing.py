@@ -90,13 +90,13 @@ class CarRacing(gym.Env, EzPickle):
         self.car = None
         self.dt = 1.0/FPS
         self.action = np.zeros((3,))
-        self.state = np.zeros((6,))
+        self.state = np.zeros((11,))
         self.reward = 0.0
         self.prev_reward = 0.0
         self.verbose = verbose
         self.fd_tile = fixtureDef(shape=polygonShape(vertices=[(0,0),(1,0),(1,-1),(0,-1)]))
         self.action_space = spaces.Box(np.array([-1,0,0]), np.array([1,1,1]), dtype=np.float32)
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(11,), dtype=np.float32)
         #self.observation_space = spaces.Box(low=0, high=255, shape=(STATE_H, STATE_W, 3), dtype=np.uint8)
 
     def seed(self, seed=None):
@@ -300,6 +300,11 @@ class CarRacing(gym.Env, EzPickle):
         self.state[2] = (self.car.hull.angle + np.pi/2) % (2*np.pi)
         self.state[3:5] = self.car.hull.linearVelocity
         self.state[5] = self.car.hull.angularVelocity
+        self.state[6] = self.car.wheels[0].joint.angle
+        self.state[7] = self.car.wheels[0].omega
+        self.state[8] = self.car.wheels[1].omega
+        self.state[9] = self.car.wheels[2].omega
+        self.state[10] = self.car.wheels[3].omega
 
         step_reward = 0
         done = False
@@ -495,7 +500,7 @@ class CarRacing(gym.Env, EzPickle):
             gl.glVertex3f(place+w*val, h, 0)
             gl.glVertex3f(place, h, 0)
 
-        true_speed = np.sqrt(np.square(self.car.hull.linearVelocity[0]) + np.square(self.car.hull.linearVelocity[1]))
+        true_speed = np.linalg.norm(self.car.hull.linearVelocity)
         hor_ind(W/64*7, 7*self.action[0], (1,1,0,0.7))
         ver_ind(W/64*14, 6*self.action[1], (0,1,0,0.7))
         ver_ind(W/64*17, 6*self.action[2], (1,0,0,0.7))
