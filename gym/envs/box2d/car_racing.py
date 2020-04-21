@@ -76,9 +76,9 @@ class FrictionDetector(contactListener):
 class CarRacing(gym.Env, EzPickle):
     metadata = {'render.modes': ['human', 'rgb_array', 'state_pixels'], 'video.frames_per_second' : FPS}
 
-    def __init__(self, verbose=0):
+    def __init__(self, seed=None, verbose=0):
         EzPickle.__init__(self)
-        self.seed()
+        self.seed(seed=seed)
         #self.contactListener_keepref = FrictionDetector(self)
         #self.world = Box2D.b2World((0,0), contactListener=self.contactListener_keepref)
         self.world = Box2D.b2World((0,0))
