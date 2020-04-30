@@ -78,10 +78,10 @@ class CarRacing(gym.Env, EzPickle):
 
     def __init__(self, seed=None, verbose=0):
         EzPickle.__init__(self)
-        self.seed(seed=seed)
         #self.contactListener_keepref = FrictionDetector(self)
         #self.world = Box2D.b2World((0,0), contactListener=self.contactListener_keepref)
         self.world = Box2D.b2World((0,0))
+        self.id = self.seed(seed=seed)
         self.viewer = None
         self.invisible_state_window = None
         self.invisible_video_window = None
@@ -102,7 +102,7 @@ class CarRacing(gym.Env, EzPickle):
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
-        return [seed]
+        return hex(seed)
 
     def _destroy(self):
         if not self.road:
